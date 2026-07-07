@@ -1,0 +1,9 @@
+.border-pink {
+  border: 2px solid #FFC0CB !important;
+}
+
+/* Optional hover effect for the button */
+.btn:hover {
+  filter: brightness(90%);
+  transition: 0.3s;
+}

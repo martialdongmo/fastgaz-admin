@@ -1,0 +1,44 @@
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav #drawer class="sidenav" fixedInViewport
+      [mode]="(isHandset$ | async) ? 'over' : 'side'"
+      [opened]="(isHandset$ | async) === false">
+    
+    <mat-toolbar class="brand-toolbar">
+      <img src="logo.png" alt="FastGaz" style="height: 40px;">
+    </mat-toolbar>
+
+    @if (adminUser(); as user) {
+      <div class="user-profile">
+        <div class="fw-bold">{{ user.fullName }}</div>
+        <small class="text-muted">{{ user.role }}</small>
+      </div>
+    }
+
+    <mat-nav-list>
+      @for (item of navigationMenu(); track item.path) {
+        <a mat-list-item [routerLink]="item.path" routerLinkActive="active-link">
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      }
+      <mat-divider></mat-divider>
+      <a mat-list-item (click)="onLogout()">
+        <mat-icon matListItemIcon>logout</mat-icon>
+        <span matListItemTitle>Logout</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar color="primary">
+      @if (isHandset$ | async) {
+        <button mat-icon-button (click)="drawer.toggle()"><mat-icon>menu</mat-icon></button>
+      }
+      <span>fast-gaz-admin</span>
+    </mat-toolbar>
+
+    <main class="p-4">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
