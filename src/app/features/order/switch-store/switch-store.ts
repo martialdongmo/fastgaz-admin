@@ -87,7 +87,7 @@ export class SwitchStore implements OnInit {
   readonly storesError = signal<string | null>(null);
   readonly storesPage = signal(0);
   readonly storesHasMore = signal(false);
-  private readonly storesPageSize = 10;
+  private readonly storesPageSize = 20;
 
   readonly selectedStore = signal<StoreResponse | null>(null);
 

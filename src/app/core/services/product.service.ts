@@ -11,7 +11,7 @@ import { ProductResponse } from '../models/response/product-response';
   providedIn: 'root',
 })
 export class ProductService {
-  private readonly baseUrl = environment.apiUrl + "/admin/products";
+  private readonly baseUrl = environment.apiUrl + "/admin/product";
 
   private http = inject(HttpClient);
 
