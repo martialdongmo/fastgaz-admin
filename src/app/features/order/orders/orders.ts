@@ -84,7 +84,9 @@ export class Orders implements OnInit {
     'status',
     'financials',
     'payment',
-    'distance',
+    'store',
+    'date',
+
     'actions',
   ];
 

@@ -25,10 +25,12 @@ export const routes: Routes = [
             },
             {
                 path: 'orders',
+                canActivate: [authGuard],
                 children: [
                     { path: '', loadComponent: () => import('./features/order/orders/orders').then(m => m.Orders) },
                     {
                         path: ':orderId',
+                        canActivate: [authGuard],
                         children: [
                             { path: '', component: OrderDetails }, // The main detail view
                             { path: 'switch-store', component: SwitchStore },

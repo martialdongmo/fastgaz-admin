@@ -190,11 +190,18 @@
             </td>
           </ng-container>
 
-          <!-- Distance -->
-          <ng-container matColumnDef="distance">
-            <th mat-header-cell *matHeaderCellDef>Distance</th>
+          <!-- Store -->
+          <ng-container matColumnDef="store">
+            <th mat-header-cell *matHeaderCellDef>Store</th>
             <td mat-cell *matCellDef="let order">
-              {{ order.customerDistance | number: '1.0-1' }} km
+              {{ order.storeName }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef>Date</th>
+            <td mat-cell *matCellDef="let order">
+              {{ order.createdAt | date }}
             </td>
           </ng-container>
 

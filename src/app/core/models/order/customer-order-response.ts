@@ -9,6 +9,11 @@ export interface CustomerOrderResponse {
   invoiceNumber: string;
   qrcode: string;
 
+  storeName:string;
+  createdAt:string;
+  city:string;
+
+
   // Status & Financials
   orderStatus: OrderStatus;          // Enum → string
   amount: number;            // double → number
