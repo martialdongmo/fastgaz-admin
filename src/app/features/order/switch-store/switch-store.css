@@ -111,3 +111,21 @@
     display: none;
   }
 }
+
+/* Alignement des filtres côte à côte */
+.store-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.store-filters mat-form-field {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .store-filters {
+    flex-direction: column;
+    gap: 0;
+  }
+}

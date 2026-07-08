@@ -5,6 +5,7 @@ import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment.development';
 import { PageResponse } from '../models/response/page-response';
 import { StoreResponse } from '../models/response/store-response';
+import { City } from '../models/enums/city';
 
 @Injectable({
   providedIn: 'root',
@@ -15,7 +16,7 @@ export class StoreService {
 
   private http = inject(HttpClient);
 
-  getStores(city?: string, page: number = 0, size: number = 10): Observable<PageResponse<StoreResponse>> {
+  getStores(city?: City, page: number = 0, size: number = 10): Observable<PageResponse<StoreResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
- 
+
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -24,6 +24,7 @@ import { StoreResponse } from '../../../core/models/response/store-response';
 import { ProductResponse } from '../../../core/models/response/product-response';
 import { ReassignStoreRequest } from '../../../core/models/request/reassign-store-request';
 import { CustomerOrderItemResponse } from '../../../core/models/order/customer-order-item-response';
+import { City } from '../../../core/models/enums/city';
 
 
 @Component({
@@ -46,9 +47,9 @@ import { CustomerOrderItemResponse } from '../../../core/models/order/customer-o
   templateUrl: './switch-store.html',
   styleUrl: './switch-store.css',
 })
-export class SwitchStore implements OnInit{
+export class SwitchStore implements OnInit {
 
-   private readonly route = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly orderService = inject(CustomerOrderService);
   private readonly storeService = inject(StoreService);
@@ -56,68 +57,76 @@ export class SwitchStore implements OnInit{
 
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
- 
+
   private orderId!: number;
- 
+
   // -- Stage 1: order context -------------------------------------------
   readonly order = signal<CustomerOrderResponse | null>(null);
   readonly loadingOrder = signal(false);
   readonly orderError = signal<string | null>(null);
- 
+
   readonly orderItemColumns = ['product', 'shop', 'quantity', 'price', 'subtotal'];
- 
+
   readonly orderSubtotal = computed(() =>
     (this.order()?.items ?? []).reduce((sum, item) => sum + item.price * item.quantity, 0),
   );
- 
+
   // -- Stage 2: store selection ------------------------------------------
-  readonly cityControl = new FormControl('', { nonNullable: true });
- 
+  readonly cityControl = new FormControl<City | ''>('', { nonNullable: true });
+  readonly nameFilter = new FormControl('', { nonNullable: true });
+
+  // Signal calculé pour la recherche par nom (filtre local)
+  readonly filteredStores = computed(() => {
+    const searchTerm = this.nameFilter.value.trim().toLowerCase();
+    if (!searchTerm) return this.stores();
+    return this.stores().filter(s => s.name.toLowerCase().includes(searchTerm));
+  });
+
   readonly stores = signal<StoreResponse[]>([]);
   readonly storesLoading = signal(false);
   readonly storesError = signal<string | null>(null);
   readonly storesPage = signal(0);
   readonly storesHasMore = signal(false);
   private readonly storesPageSize = 10;
- 
+
   readonly selectedStore = signal<StoreResponse | null>(null);
- 
+
   // -- Stage 3: product mapping -------------------------------------------
   readonly productFilter = new FormControl('', { nonNullable: true });
- 
+
   readonly products = signal<ProductResponse[]>([]);
   readonly productsLoading = signal(false);
   readonly productsError = signal<string | null>(null);
   readonly productsPage = signal(0);
   readonly productsHasMore = signal(false);
   private readonly productsPageSize = 20;
- 
+
   readonly filteredProducts = computed(() => {
     const term = this.productFilter.value.trim().toLowerCase();
     const list = this.products();
     if (!term) return list;
     return list.filter((p) => p.name.toLowerCase().includes(term));
   });
- 
+
   // itemId -> newProductId / itemId -> overridden price
   readonly itemProductMapping = signal<Map<number, number>>(new Map());
   readonly priceOverrides = signal<Map<number, number>>(new Map());
- 
+
   readonly reasonControl = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required, Validators.minLength(5)],
+    validators: [Validators.minLength(0)],
   });
- 
+
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
- 
+
   readonly isFullyMapped = computed(() => {
     const items = this.order()?.items ?? [];
     if (items.length === 0) return false;
     const mapping = this.itemProductMapping();
     return items.every((item) => mapping.has(item.id));
   });
- 
+
   readonly canConfirm = computed(
     () =>
       !!this.selectedStore() &&
@@ -127,34 +136,42 @@ export class SwitchStore implements OnInit{
   );
 
   // Add these signals to your class properties
-readonly successMessage = signal<string | null>(null);
-readonly errorMessage = signal<string | null>(null);
+  readonly successMessage = signal<string | null>(null);
+  readonly errorMessage = signal<string | null>(null);
 
 
-   ngOnInit(): void {
+  ngOnInit(): void {
+    // 1. Initialisation des données de base
     const idParam = this.route.snapshot.paramMap.get('orderId');
     this.orderId = Number(idParam);
- 
+
     if (!idParam || Number.isNaN(this.orderId)) {
       this.orderError.set('Missing or invalid order id in the route.');
       return;
     }
- 
+
     this.fetchOrder();
-    this.searchStores(true);
- 
+
+    // 2. Gestion des filtres :
+    // On appelle searchStores uniquement via les changements d'état
     this.cityControl.valueChanges
       .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.searchStores(true));
+      .subscribe(() => {
+        this.nameFilter.setValue(''); // Réinitialise la recherche locale si on change de ville
+        this.searchStores(true);
+      });
+
+    // 3. Premier chargement
+    this.searchStores(true);
   }
- 
+
   // ---------------------------------------------------------------------
   // Stage 1 — order context
   // ---------------------------------------------------------------------
   private fetchOrder(): void {
     this.loadingOrder.set(true);
     this.orderError.set(null);
- 
+
     this.orderService
       .getOrderById(this.orderId)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -169,7 +186,7 @@ readonly errorMessage = signal<string | null>(null);
         },
       });
   }
- 
+
   // ---------------------------------------------------------------------
   // Stage 2 — store selection
   // ---------------------------------------------------------------------
@@ -177,9 +194,14 @@ readonly errorMessage = signal<string | null>(null);
     const page = reset ? 0 : this.storesPage() + 1;
     this.storesLoading.set(true);
     this.storesError.set(null);
- 
+
+    // On récupère la valeur du contrôle
+    const cityValue = this.cityControl.value;
+    // Si c'est vide, on passe undefined pour ne pas filtrer par ville
+    const cityParam = cityValue !== '' ? (cityValue as City) : undefined;
+
     this.storeService
-      .getStores(this.cityControl.value.trim() || undefined, page, this.storesPageSize)
+      .getStores(cityParam, page, this.storesPageSize)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
@@ -194,14 +216,14 @@ readonly errorMessage = signal<string | null>(null);
         },
       });
   }
- 
+
   loadMoreStores(): void {
     this.searchStores(false);
   }
- 
+
   selectStore(store: StoreResponse): void {
     if (this.selectedStore()?.id === store.id) return;
- 
+
     this.selectedStore.set(store);
     this.products.set([]);
     this.productsPage.set(0);
@@ -209,28 +231,28 @@ readonly errorMessage = signal<string | null>(null);
     this.productFilter.setValue('');
     this.itemProductMapping.set(new Map());
     this.priceOverrides.set(new Map());
- 
+
     this.fetchProducts(true);
   }
- 
+
   changeStore(): void {
     this.selectedStore.set(null);
     this.products.set([]);
     this.itemProductMapping.set(new Map());
     this.priceOverrides.set(new Map());
   }
- 
+
   // ---------------------------------------------------------------------
   // Stage 3 — product mapping
   // ---------------------------------------------------------------------
   private fetchProducts(reset: boolean): void {
     const store = this.selectedStore();
     if (!store) return;
- 
+
     const page = reset ? 0 : this.productsPage() + 1;
     this.productsLoading.set(true);
     this.productsError.set(null);
- 
+
     this.productService
       .getProductsByStore(store.id, page, this.productsPageSize)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -247,11 +269,11 @@ readonly errorMessage = signal<string | null>(null);
         },
       });
   }
- 
+
   loadMoreProducts(): void {
     this.fetchProducts(false);
   }
- 
+
   /**
    * Called when the admin picks a replacement product for one original order
    * item (via the mat-select in a mapping row).
@@ -263,7 +285,7 @@ readonly errorMessage = signal<string | null>(null);
    */
   onProductSelected(item: CustomerOrderItemResponse, productId: number): void {
     const product = this.products().find((p) => p.id === productId);
- 
+
     // Record item.id -> newProductId. Signals hold immutable values, so we
     // clone the Map rather than mutating it in place — mutating the same
     // Map instance wouldn't trigger change detection / computed() re-evals.
@@ -272,7 +294,7 @@ readonly errorMessage = signal<string | null>(null);
       next.set(item.id, productId);
       return next;
     });
- 
+
     // Auto-suggest the product's default price; the admin can still override it below.
     // This mirrors the backend's fallback: `manualPriceOverrides.getOrDefault(item.id, newProduct.getPrice())`.
     // We proactively seed that same default here so the price field never
@@ -285,7 +307,7 @@ readonly errorMessage = signal<string | null>(null);
       });
     }
   }
- 
+
   /**
    * Called on every keystroke in an item's price override input.
    * Keeps `priceOverrides` in sync with what will become
@@ -306,34 +328,34 @@ readonly errorMessage = signal<string | null>(null);
       return next;
     });
   }
- 
+
   /** Current mapped product id for a given original item, or null if unmapped yet. Drives the mat-select's [value] and the "fully mapped" check. */
   mappedProductId(item: CustomerOrderItemResponse): number | null {
     return this.itemProductMapping().get(item.id) ?? null;
   }
- 
+
   /** Current price override for a given original item, or null if not set. Drives the price input's [value]. */
   overriddenPrice(item: CustomerOrderItemResponse): number | null {
     return this.priceOverrides().get(item.id) ?? null;
   }
- 
+
   // ---------------------------------------------------------------------
   // Submit
   // ---------------------------------------------------------------------
   confirmReassignment(): void {
     const store = this.selectedStore();
     if (!store || !this.canConfirm()) return;
- 
+
     const request: ReassignStoreRequest = {
       targetStoreId: store.id,
       itemProductMapping: Object.fromEntries(this.itemProductMapping()),
       manualPriceOverrides: Object.fromEntries(this.priceOverrides()),
       reason: this.reasonControl.value.trim(),
     };
- 
+
     this.submitting.set(true);
     this.submitError.set(null);
- 
+
     this.orderService
       .reassignOrderStore(this.orderId, request)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -341,7 +363,7 @@ readonly errorMessage = signal<string | null>(null);
         next: () => {
           this.submitting.set(false);
           this.snackBar.open('Order reassigned to the new store.', 'Close', { duration: 3000 });
-         this.successMessage.set('Order successfully reassigned to the new store.');
+          this.successMessage.set('Order successfully reassigned to the new store.');
           // this.router.navigate(['/admin/orders']);
         },
         error: (error) => {
@@ -355,7 +377,7 @@ readonly errorMessage = signal<string | null>(null);
         },
       });
   }
- 
+
   cancel(): void {
     this.router.navigate(['/admin/orders', this.orderId]);
   }
