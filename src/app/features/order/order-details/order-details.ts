@@ -33,6 +33,8 @@ const SWITCH_STORE_STATUSES: ReadonlySet<OrderStatus> = new Set([
   OrderStatus.INDELIVERY,
   OrderStatus.PENDING,
     OrderStatus.FAILED,
+      OrderStatus.CANCELLED,
+
 
 ]);
 
