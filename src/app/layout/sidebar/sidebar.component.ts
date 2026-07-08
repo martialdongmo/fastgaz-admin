@@ -32,7 +32,7 @@ interface NavItem {
     MatSidenavModule,
     MatListModule,
     MatIconModule,
-    MatDividerModule,
+    MatDividerModule,                                                                       
     AsyncPipe,
     RouterOutlet,
   ],
