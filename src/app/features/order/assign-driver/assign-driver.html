@@ -1,1 +1,160 @@
-<p>assign-driver works!</p>
+<div class="assign-driver">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <button mat-icon-button (click)="cancel()" matTooltip="Back to order">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="m-0">Assign driver</h1>
+      @if (order(); as o) {
+        <p class="text-muted m-0">Order {{ o.invoiceNumber }} &middot; {{ o.customerName }}</p>
+      }
+    </div>
+  </div>
+
+  @if (loadingOrder()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (orderError(); as err) {
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ err }}</span>
+    </div>
+  } @else if (order(); as o) {
+
+    @if (alreadyInDelivery()) {
+      <div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+        <mat-icon>local_shipping</mat-icon>
+        <span>This order is already <strong>in delivery</strong> — a driver has already been dispatched. Assignment is disabled.</span>
+      </div>
+    }
+
+    <div class="row g-3">
+
+      <!-- Order summary -->
+      <div class="col-12 col-lg-5">
+        <mat-card appearance="outlined">
+          <div class="card-header-row">
+            <h2>Order summary</h2>
+          </div>
+          <dl class="summary-list">
+            <dt>Customer</dt>
+            <dd>{{ o.customerName }}</dd>
+
+            <dt>Phone</dt>
+            <dd>{{ o.customerPhone }}</dd>
+
+            <dt>Address</dt>
+            <dd>{{ o.customerAddress }}</dd>
+
+            <dt>Distance</dt>
+            <dd>{{ o.customerDistance | number: '1.0-1' }} km</dd>
+
+            <dt>Total</dt>
+            <dd>{{ o.total | currency: 'XAF' }}</dd>
+          </dl>
+        </mat-card>
+      </div>
+
+      <!-- Driver selection -->
+      <div class="col-12 col-lg-7">
+        <mat-card appearance="outlined">
+          <div class="card-header-row">
+            <h2>Available drivers</h2>
+            @if (selectedDelivery(); as d) {
+              <mat-chip highlighted color="primary">{{ d.driverName }} selected</mat-chip>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Search drivers by name</mat-label>
+            <input
+              matInput
+              [value]="driverSearch()"
+              (input)="driverSearch.set($any($event.target).value)"
+              placeholder="e.g. Jean"
+            />
+            <mat-icon matIconSuffix>search</mat-icon>
+          </mat-form-field>
+
+          @if (deliveriesLoading() && deliveries().length === 0) {
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+          }
+
+          @if (deliveriesError(); as err) {
+            <div class="alert alert-danger">{{ err }}</div>
+          }
+
+          @if (!deliveriesLoading() && !deliveriesError() && availableDeliveries().length === 0) {
+            <p class="text-muted">No available drivers match your search.</p>
+          }
+
+          <mat-nav-list class="driver-list">
+            @for (delivery of availableDeliveries(); track delivery.id) {
+              <a
+                mat-list-item
+                [class.driver-list__item--selected]="selectedDelivery()?.id === delivery.id"
+                [class.driver-list__item--disabled]="alreadyInDelivery() || dispatched()"
+                (click)="selectDelivery(delivery)"
+              >
+                <mat-icon matListItemIcon>local_shipping</mat-icon>
+                <span matListItemTitle>{{ delivery.driverName }}</span>
+                @if (selectedDelivery()?.id === delivery.id) {
+                  <mat-icon matListItemMeta color="primary">check_circle</mat-icon>
+                }
+              </a>
+            }
+          </mat-nav-list>
+
+          @if (deliveriesHasMore()) {
+            <div class="d-flex justify-content-center py-2">
+              <button mat-button (click)="loadMoreDeliveries()" [disabled]="deliveriesLoading()">
+                Load more drivers
+              </button>
+            </div>
+          }
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Confirmation -->
+    <mat-card appearance="outlined" class="mt-3">
+      @if (successMessage(); as msg) {
+        <div class="alert alert-success d-flex align-items-center gap-2">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ msg }}</span>
+        </div>
+      }
+
+      @if (errorMessage(); as err) {
+        <div class="alert alert-danger d-flex align-items-center gap-2">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ err }}</span>
+        </div>
+      }
+
+      <div class="d-flex justify-content-end gap-2">
+        @if (dispatched()) {
+          <!-- No auto-redirect after a successful dispatch — the admin
+               decides when to leave this screen. -->
+          <button mat-raised-button color="primary" (click)="cancel()">Back to order</button>
+        } @else {
+          <button mat-button (click)="cancel()" [disabled]="submitting()">Cancel</button>
+          <button
+            mat-raised-button
+            color="primary"
+            [disabled]="!canConfirm()"
+            (click)="confirmAssignment()"
+          >
+            @if (submitting()) {
+              Dispatching…
+            } @else {
+              Confirm dispatch
+            }
+          </button>
+        }
+      </div>
+    </mat-card>
+  }
+</div>

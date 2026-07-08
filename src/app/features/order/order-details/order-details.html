@@ -1,1 +1,220 @@
-<p>order-details works!</p>
+<div class="order-details">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <button mat-icon-button (click)="goToOrdersList()" matTooltip="Back to orders">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="flex-grow-1">
+      @if (order(); as o) {
+        <h1 class="m-0">Order {{ o.invoiceNumber }}</h1>
+        <p class="text-muted m-0">{{ o.customerName }} &middot; {{ o.transactionId }}</p>
+      } @else {
+        <h1 class="m-0">Order details</h1>
+      }
+    </div>
+    @if (order(); as o) {
+      <mat-chip highlighted [color]="statusColor(o.orderStatus)">
+        {{ formatStatusLabel(o.orderStatus) }}
+      </mat-chip>
+    }
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (errorMessage(); as err) {
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ err }}</span>
+    </div>
+  } @else if (order(); as o) {
+
+    <!-- Action bar -->
+    <div class="action-bar d-flex flex-wrap gap-2 mb-3">
+      <button
+        mat-stroked-button
+        color="primary"
+        [disabled]="!canUpdatePrice()"
+        [matTooltip]="canUpdatePrice() ? '' : 'Not available for this order status'"
+        (click)="goToUpdatePrice()"
+      >
+        <mat-icon>edit</mat-icon>
+        Update price
+      </button>
+
+      <button
+        mat-stroked-button
+        color="primary"
+        [disabled]="!canSwitchStore()"
+        [matTooltip]="canSwitchStore() ? '' : 'Only available for Awaiting cash, Validated, or In delivery orders'"
+        (click)="goToSwitchStore()"
+      >
+        <mat-icon>storefront</mat-icon>
+        Switch store
+      </button>
+
+      <button
+        mat-stroked-button
+        color="primary"
+        [disabled]="!canAssignDriver()"
+        [matTooltip]="canAssignDriver() ? '' : 'A driver is already assigned, or this order can no longer be dispatched'"
+        (click)="goToAssignDriver()"
+      >
+        <mat-icon>local_shipping</mat-icon>
+        Assign driver
+      </button>
+
+      <span class="flex-grow-1"></span>
+
+      <button
+        mat-stroked-button
+        color="warn"
+        [disabled]="!canCancel()"
+        [matTooltip]="canCancel() ? '' : 'This order can no longer be cancelled'"
+        (click)="openCancelForm()"
+      >
+        <mat-icon>cancel</mat-icon>
+        Cancel order
+      </button>
+    </div>
+
+    @if (showCancelForm()) {
+      <mat-card appearance="outlined" class="cancel-card mb-3">
+        <div class="card-header-row">
+          <h2>Cancel this order</h2>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Reason for cancellation</mat-label>
+          <textarea
+            matInput
+            rows="2"
+            [value]="cancelReason()"
+            (input)="cancelReason.set($any($event.target).value)"
+            placeholder="e.g. Customer requested cancellation"
+          ></textarea>
+        </mat-form-field>
+
+        @if (cancelError(); as err) {
+          <div class="alert alert-danger">{{ err }}</div>
+        }
+
+        <div class="d-flex justify-content-end gap-2">
+          <button mat-button (click)="closeCancelForm()" [disabled]="cancelling()">
+            Never mind
+          </button>
+          <button
+            mat-raised-button
+            color="warn"
+            [disabled]="!canConfirmCancel()"
+            (click)="confirmCancel()"
+          >
+            @if (cancelling()) {
+              Cancelling…
+            } @else {
+              Confirm cancellation
+            }
+          </button>
+        </div>
+      </mat-card>
+    }
+
+    <div class="row g-3">
+
+      <!-- Order items -->
+      <div class="col-12 col-lg-7">
+        <mat-card appearance="outlined">
+          <div class="card-header-row">
+            <h2>Items</h2>
+            <span class="badge-muted">{{ o.items.length }} item(s)</span>
+          </div>
+
+          <table mat-table [dataSource]="o.items" class="w-100">
+            <ng-container matColumnDef="product">
+              <th mat-header-cell *matHeaderCellDef>Product</th>
+              <td mat-cell *matCellDef="let item">{{ item.productName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="shop">
+              <th mat-header-cell *matHeaderCellDef>Shop</th>
+              <td mat-cell *matCellDef="let item">{{ item.shopName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="quantity">
+              <th mat-header-cell *matHeaderCellDef>Qty</th>
+              <td mat-cell *matCellDef="let item">{{ item.quantity }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="price">
+              <th mat-header-cell *matHeaderCellDef>Price</th>
+              <td mat-cell *matCellDef="let item">{{ item.price | currency: 'XAF' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="subtotal">
+              <th mat-header-cell *matHeaderCellDef>Subtotal</th>
+              <td mat-cell *matCellDef="let item">
+                {{ item.price * item.quantity | currency: 'XAF' }}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="itemColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: itemColumns"></tr>
+          </table>
+
+          <div class="order-totals">
+            <div><span>Items subtotal</span><span>{{ orderSubtotal() | currency: 'XAF' }}</span></div>
+            <div><span>Delivery fee</span><span>{{ o.deliveryFee | currency: 'XAF' }}</span></div>
+            <div class="order-totals__grand"><span>Total</span><span>{{ o.total | currency: 'XAF' }}</span></div>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Customer / logistics summary -->
+      <div class="col-12 col-lg-5">
+        <mat-card appearance="outlined" class="mb-3">
+          <div class="card-header-row">
+            <h2>Customer</h2>
+          </div>
+          <dl class="summary-list">
+            <dt>Name</dt>
+            <dd>{{ o.customerName }}</dd>
+
+            <dt>Phone</dt>
+            <dd>{{ o.customerPhone }}</dd>
+
+            <dt>Address</dt>
+            <dd>{{ o.customerAddress }}</dd>
+
+            <dt>Distance</dt>
+            <dd>{{ o.customerDistance | number: '1.0-1' }} km</dd>
+          </dl>
+        </mat-card>
+
+        <mat-card appearance="outlined">
+          <div class="card-header-row">
+            <h2>Payment &amp; validation</h2>
+          </div>
+          <dl class="summary-list">
+            <dt>Payment</dt>
+            <dd>{{ o.cashPayment ? 'Cash on delivery' : 'Online' }}</dd>
+
+            <dt>Paid</dt>
+            <dd>{{ o.paymentDone ? 'Yes' : 'No' }}</dd>
+
+            @if (o.cashPayment) {
+              <dt>Fee delivered</dt>
+              <dd>{{ o.feeDelivered ? 'Yes' : 'No' }}</dd>
+            }
+
+            <dt>Validation code</dt>
+            <dd>{{ o.validationCode }}</dd>
+
+            <dt>Code validated</dt>
+            <dd>{{ o.codeValidate ? 'Yes' : 'No' }}</dd>
+          </dl>
+        </mat-card>
+      </div>
+    </div>
+  }
+</div>

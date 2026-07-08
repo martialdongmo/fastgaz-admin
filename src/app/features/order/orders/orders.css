@@ -1,0 +1,186 @@
+:host {
+  --orders-accent: #3454d1;
+  --orders-accent-soft: #eef1fd;
+  --orders-ink: #1a1d29;
+  --orders-muted: #6b7280;
+  --orders-border: #e4e6ec;
+  --orders-surface: #ffffff;
+
+  display: block;
+  color: var(--orders-ink);
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.orders-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.orders-page__header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.orders-page__subtitle {
+  margin: 4px 0 0;
+  color: var(--orders-muted);
+  font-size: 0.9rem;
+}
+
+.filters-card,
+.table-card {
+  border-radius: 12px;
+  border-color: var(--orders-border);
+}
+
+/* Filter field layout comes from Bootstrap 5's grid (row/col-* classes in
+   the template). Make sure bootstrap's CSS is registered in angular.json
+   (or imported globally) alongside Angular Material's theme. */
+.filters-count-badge {
+  margin-left: 6px;
+  background: var(--orders-accent-soft);
+  color: var(--orders-accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.table-card {
+  padding-bottom: 4px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+}
+
+.orders-table th.mat-mdc-header-cell {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--orders-muted);
+  background: var(--orders-surface);
+}
+
+.orders-table td.mat-mdc-cell {
+  vertical-align: top;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.orders-table td.mat-mdc-cell,
+.orders-table th.mat-mdc-header-cell {
+  display: table-cell;
+}
+
+.orders-table td.mat-mdc-cell > * {
+  display: block;
+}
+
+.orders-table__row {
+  cursor: pointer;
+}
+
+.orders-table__row:hover {
+  background: var(--orders-accent-soft);
+}
+
+.orders-table__sub {
+  font-size: 0.78rem;
+  color: var(--orders-muted);
+}
+
+.orders-table__total {
+  font-weight: 600;
+}
+
+.orders-table__validated {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #16794c;
+}
+
+.orders-table__validated mat-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  font-weight: 600;
+}
+
+.payment-pill {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f2f6;
+  color: var(--orders-muted);
+  font-size: 0.78rem;
+}
+
+.payment-pill mat-icon {
+  font-size: 15px;
+  height: 15px;
+  width: 15px;
+}
+
+.payment-pill--cash {
+  background: #fff4e5;
+  color: #a15c00;
+}
+
+.actions-header,
+.actions-cell {
+  text-align: right;
+}
+
+.menu-item--danger {
+  color: #c0392b;
+}
+
+.table-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 24px;
+  color: var(--orders-muted);
+  text-align: center;
+}
+
+.table-state mat-icon {
+  font-size: 40px;
+  height: 40px;
+  width: 40px;
+  color: var(--orders-border);
+}
+
+.table-state--error mat-icon {
+  color: #c0392b;
+}

@@ -5,6 +5,7 @@ import { PageNotFound } from './page.not.found/page.not.found';
 import { OrderDetails } from './features/order/order-details/order-details';
 import { SwitchStore } from './features/order/switch-store/switch-store';
 import { AssignDriver } from './features/order/assign-driver/assign-driver';
+import { OrderUpdatePrice } from './features/order/order-update-price/order-update-price';
 
 export const routes: Routes = [
     { path: 'login', component: Login },
@@ -24,23 +25,20 @@ export const routes: Routes = [
             },
             {
                 path: 'orders',
-                loadChildren: () => import('./features/order/orders/orders').then(m => m.Orders)
+                children: [
+                    { path: '', loadComponent: () => import('./features/order/orders/orders').then(m => m.Orders) },
+                    {
+                        path: ':orderId',
+                        children: [
+                            { path: '', component: OrderDetails }, // The main detail view
+                            { path: 'switch-store', component: SwitchStore },
+                            { path: 'assign-driver', component: AssignDriver },
+                            { path: 'update-price', component: OrderUpdatePrice }
+                        ]
+                    }
+                ]
             },
-            {
-                component: OrderDetails,
-                path: 'orders/:orderId',
-                title: 'Order Details'
-            },
-            {
-                component: SwitchStore,
-                path: 'switch-sidebar/:orderId',
-                title: 'Switch Store'
-            },
-            {
-                component: AssignDriver,
-                path: 'assign-driver/:orderId',
-                title: 'Assign Driver'
-            }
+
 
         ]
     },

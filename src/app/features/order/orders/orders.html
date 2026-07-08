@@ -1,1 +1,255 @@
-<p>orders works!</p>
+<div class="orders-page">
+
+  <!-- Header -->
+  <header class="orders-page__header">
+    <div>
+      <h1>Orders</h1>
+      <p class="orders-page__subtitle">
+        {{ totalElements() }} order{{ totalElements() === 1 ? '' : 's' }} total
+      </p>
+    </div>
+
+    <button mat-stroked-button color="primary" (click)="fetchOrders()" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </header>
+
+  <!-- Filters -->
+  <mat-card class="filters-card" appearance="outlined">
+    <form [formGroup]="filterForm" class="p-3">
+      <div class="row g-3 align-items-start">
+
+        <div class="col-12 col-sm-6 col-lg-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option [value]="null">All statuses</mat-option>
+              @for (option of statusOptions; track option.value) {
+                <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Date range filter (from/to in a single field) -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Order date range</mat-label>
+            <mat-date-range-input [formGroup]="filterForm" [rangePicker]="dateRangePicker">
+              <input matStartDate formControlName="from" placeholder="Start date" />
+              <input matEndDate formControlName="to" placeholder="End date" />
+            </mat-date-range-input>
+            <mat-datepicker-toggle matIconSuffix [for]="dateRangePicker"></mat-datepicker-toggle>
+            <mat-date-range-picker #dateRangePicker></mat-date-range-picker>
+          </mat-form-field>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Store ID</mat-label>
+            <input matInput type="number" formControlName="storeId" placeholder="e.g. 12" />
+          </mat-form-field>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>City</mat-label>
+            <input matInput formControlName="city" placeholder="e.g. Douala" />
+            <mat-icon matIconSuffix>location_on</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Invoice number</mat-label>
+            <input matInput formControlName="invoiceNumber" placeholder="e.g. INV-2026-0001" />
+            <mat-icon matIconSuffix>receipt_long</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Payment method</mat-label>
+            <mat-select formControlName="cashPayment">
+              <mat-option value="ALL">All payment methods</mat-option>
+              <mat-option value="CASH">Cash on delivery</mat-option>
+              <mat-option value="ONLINE">Online payment</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="col-12 d-flex justify-content-end">
+          <button
+            mat-button
+            type="button"
+            (click)="resetFilters()"
+            [disabled]="activeFilterCount() === 0"
+          >
+            <mat-icon>filter_alt_off</mat-icon>
+            Clear filters
+            @if (activeFilterCount() > 0) {
+              <span class="filters-count-badge">{{ activeFilterCount() }}</span>
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  </mat-card>
+
+  <!-- Table -->
+  <mat-card class="table-card" appearance="outlined">
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    @if (errorMessage(); as error) {
+      <div class="table-state table-state--error">
+        <mat-icon>error_outline</mat-icon>
+        <p>{{ error }}</p>
+        <button mat-stroked-button color="primary" (click)="fetchOrders()">Try again</button>
+      </div>
+    } @else if (isEmpty()) {
+      <div class="table-state">
+        <mat-icon>inbox</mat-icon>
+        <p>No orders match your filters.</p>
+        @if (activeFilterCount() > 0) {
+          <button mat-button color="primary" (click)="resetFilters()">Clear filters</button>
+        }
+      </div>
+    } @else {
+      <div class="table-scroll">
+        <table mat-table [dataSource]="orders()" class="orders-table">
+
+          <!-- Invoice -->
+          <ng-container matColumnDef="invoiceNumber">
+            <th mat-header-cell *matHeaderCellDef>Invoice</th>
+            <td mat-cell *matCellDef="let order">
+              <span class="mono">{{ order.invoiceNumber }}</span>
+              <span class="orders-table__sub">{{ order.transactionId }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Customer -->
+          <ng-container matColumnDef="customer">
+            <th mat-header-cell *matHeaderCellDef>Customer</th>
+            <td mat-cell *matCellDef="let order">
+              <span>{{ order.customerName }}</span>
+              <span class="orders-table__sub">{{ order.customerPhone }}</span>
+              <span class="orders-table__sub">{{ order.customerAddress }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Status -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let order">
+              <mat-chip-set>
+                <mat-chip [color]="statusColor(order.orderStatus)" highlighted>
+                  {{ formatStatusLabel(order.orderStatus) }}
+                </mat-chip>
+              </mat-chip-set>
+              @if (order.codeValidate) {
+                <span class="orders-table__validated">
+                  <mat-icon inline="true">verified</mat-icon> Code validated
+                </span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Financials -->
+          <ng-container matColumnDef="financials">
+            <th mat-header-cell *matHeaderCellDef>Amount</th>
+            <td mat-cell *matCellDef="let order">
+              <span>{{ order.amount | currency: 'XAF' }}</span>
+              <span class="orders-table__sub">
+                + {{ order.deliveryFee | currency: 'XAF' }} delivery
+              </span>
+              <span class="orders-table__total">{{ order.total | currency: 'XAF' }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Payment -->
+          <ng-container matColumnDef="payment">
+            <th mat-header-cell *matHeaderCellDef>Payment</th>
+            <td mat-cell *matCellDef="let order">
+              <span class="payment-pill" [class.payment-pill--cash]="order.cashPayment">
+                <mat-icon inline="true">
+                  {{ order.cashPayment ? 'payments' : 'credit_card' }}
+                </mat-icon>
+                {{ order.cashPayment ? 'Cash' : 'Online' }}
+              </span>
+              @if (order.cashPayment) {
+                <span class="orders-table__sub">
+                  Fee {{ order.feeDelivered ? 'delivered' : 'pending' }}
+                </span>
+              }
+              <span class="orders-table__sub">
+                {{ order.paymentDone ? 'Paid' : 'Awaiting payment' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Distance -->
+          <ng-container matColumnDef="distance">
+            <th mat-header-cell *matHeaderCellDef>Distance</th>
+            <td mat-cell *matCellDef="let order">
+              {{ order.customerDistance | number: '1.0-1' }} km
+            </td>
+          </ng-container>
+
+          <!-- Actions -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
+            <td mat-cell *matCellDef="let order" class="actions-cell">
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="rowMenu"
+                matTooltip="More actions"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+
+              <mat-menu #rowMenu="matMenu">
+                <button mat-menu-item (click)="viewOrder(order)">
+                  <mat-icon>visibility</mat-icon>
+                  <span>View details</span>
+                </button>
+                <button mat-menu-item (click)="goToUpdatePrice(order)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Update price</span>
+                </button>
+                <button mat-menu-item (click)="goToSwitchStore(order)">
+                  <mat-icon>storefront</mat-icon>
+                  <span>Switch store</span>
+                </button>
+                <button mat-menu-item (click)="goToAssignDriver(order)">
+                  <mat-icon>local_shipping</mat-icon>
+                  <span>Assign driver</span>
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: displayedColumns"
+            class="orders-table__row"
+            (click)="viewOrder(row)"
+          ></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalElements()"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  </mat-card>
+</div>

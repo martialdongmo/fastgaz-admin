@@ -1,0 +1,155 @@
+<div class="order-update-price">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <button mat-icon-button (click)="goBack()" matTooltip="Back to order">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="m-0">Update price</h1>
+      @if (order(); as o) {
+        <p class="text-muted m-0">Order {{ o.invoiceNumber }} &middot; {{ o.customerName }}</p>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (successMessage(); as msg) {
+    <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ msg }}</span>
+    </div>
+  }
+
+  @if (errorMessage(); as err) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ err }}</span>
+    </div>
+  }
+
+  @if (order(); as o) {
+    <div class="row g-3">
+
+      <!-- Read-only context: what's currently in the order -->
+      <div class="col-12 col-lg-5">
+        <mat-card appearance="outlined">
+          <div class="card-header-row">
+            <h2>Current order</h2>
+            <span class="badge-muted">{{ o.items.length }} item(s)</span>
+          </div>
+
+          <div class="item-rows">
+            @for (item of o.items; track item.id) {
+              <div class="item-row">
+                <div>
+                  <div class="fw-bold">{{ item.productName }}</div>
+                  <small class="text-muted">{{ item.shopName }} &middot; qty {{ item.quantity }}</small>
+                </div>
+                <div class="item-row__price">{{ item.price | currency: 'XAF' }}</div>
+              </div>
+            }
+          </div>
+
+          <div class="order-totals">
+            <div><span>Current amount</span><span>{{ o.amount | currency: 'XAF' }}</span></div>
+            <div><span>Current delivery fee</span><span>{{ o.deliveryFee | currency: 'XAF' }}</span></div>
+            <div class="order-totals__grand"><span>Current total</span><span>{{ o.total | currency: 'XAF' }}</span></div>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Order-level price form -->
+      <div class="col-12 col-lg-7">
+        <mat-card appearance="outlined" class="mb-3">
+          <div class="card-header-row">
+            <h2>Set new price</h2>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>New price</mat-label>
+            <input
+              matInput
+              type="number"
+              [value]="newPriceInput()"
+              (input)="onNewPriceChange($any($event.target).value)"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Delivery fee</mat-label>
+            <input
+              matInput
+              type="number"
+              [value]="deliveryFeeInput()"
+              (input)="onDeliveryFeeChange($any($event.target).value)"
+            />
+          </mat-form-field>
+
+          <div class="preview-total">
+            <span>New total (price + delivery fee)</span>
+            <strong>{{ newTotal() | currency: 'XAF' }}</strong>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100 mt-3">
+            <mat-label>Reason for price change</mat-label>
+            <textarea
+              matInput
+              rows="2"
+              [value]="updateReason()"
+              (input)="updateReason.set($any($event.target).value)"
+              placeholder="e.g. Manual discount agreed with customer"
+            ></textarea>
+          </mat-form-field>
+
+          <div class="d-flex justify-content-end">
+            <button
+              mat-raised-button
+              color="primary"
+              [disabled]="!canSubmitPrice()"
+              (click)="submitPriceUpdate()"
+            >
+              Save price changes
+            </button>
+          </div>
+        </mat-card>
+
+        <!-- Status change -->
+        <mat-card appearance="outlined">
+          <div class="card-header-row">
+            <h2>Order status</h2>
+          </div>
+
+          <p class="text-muted">
+            Current status: <strong>{{ o.orderStatus }}</strong>
+          </p>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>New status</mat-label>
+            <mat-select
+              [value]="selectedStatus()"
+              (selectionChange)="selectedStatus.set($event.value)"
+            >
+              @for (option of statusOptions; track option.value) {
+                <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <div class="d-flex justify-content-end">
+            <button
+              mat-stroked-button
+              color="primary"
+              [disabled]="!selectedStatus() || loading()"
+              (click)="submitStatusChange()"
+            >
+              Update status
+            </button>
+          </div>
+        </mat-card>
+      </div>
+    </div>
+  }
+</div>

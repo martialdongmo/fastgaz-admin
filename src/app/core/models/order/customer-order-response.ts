@@ -3,7 +3,8 @@ import { CustomerOrderItemResponse } from './customer-order-item-response';
 
 export interface CustomerOrderResponse {
   // Basic Info
-  id: number;                // Long → number
+  id: number;        
+  storeId:number;        // Long → number
   transactionId: string;
   invoiceNumber: string;
   qrcode: string;
