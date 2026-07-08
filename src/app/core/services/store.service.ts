@@ -11,7 +11,7 @@ import { StoreResponse } from '../models/response/store-response';
 })
 export class StoreService {
 
-  private readonly baseUrl = environment.apiUrl + "/admin/stores";
+  private readonly baseUrl = environment.apiUrl + "/admin/store";
 
   private http = inject(HttpClient);
 

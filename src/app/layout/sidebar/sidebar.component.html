@@ -16,6 +16,7 @@ v<mat-sidenav-container class="sidenav-container">
     <div class="user-profile d-flex align-items-center gap-2 px-3 py-2">
       <div class="avatar-circle">{{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}</div>
       <div class="flex-grow-1 overflow-hidden">
+        <div class="fw-bold text-truncate">{{ user.fullName }}</div>
         <small class="text-muted">{{ user.role }}</small>
       </div>
     </div>
