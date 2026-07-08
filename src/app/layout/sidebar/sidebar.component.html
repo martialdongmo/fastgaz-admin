@@ -1,28 +1,45 @@
-<mat-sidenav-container class="sidenav-container">
-  <mat-sidenav #drawer class="sidenav" fixedInViewport
-      [mode]="(isHandset$ | async) ? 'over' : 'side'"
-      [opened]="(isHandset$ | async) === false">
-    
-    <mat-toolbar class="brand-toolbar">
-      <img src="logo.png" alt="FastGaz" style="height: 40px;">
+v<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav #drawer class="sidenav" fixedInViewport [mode]="(isHandset$ | async) ? 'over' : 'side'"
+    [opened]="(isHandset$ | async) === false">
+    <mat-toolbar class="brand-toolbar d-flex align-items-center justify-content-center">
+      <img src="logo.png" alt="FastGaz" class="brand-logo" />
     </mat-toolbar>
 
-    @if (adminUser(); as user) {
-      <div class="user-profile">
-        <div class="fw-bold">{{ user.fullName }}</div>
+    @if (loadingProfile()) {
+    <div class="user-profile d-flex align-items-center gap-2 px-3 py-2">
+      <div class="placeholder-glow w-100">
+        <span class="placeholder col-8 d-block mb-1"></span>
+        <span class="placeholder col-5 d-block"></span>
+      </div>
+    </div>
+    } @else if (adminUser(); as user) {
+    <div class="user-profile d-flex align-items-center gap-2 px-3 py-2">
+      <div class="avatar-circle">{{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}</div>
+      <div class="flex-grow-1 overflow-hidden">
+        <div class="fw-bold text-truncate">{{ user.fullName }}</div>
         <small class="text-muted">{{ user.role }}</small>
       </div>
+    </div>
+    } @else {
+    <div class="user-profile px-3 py-2">
+      <small class="text-danger">Profil indisponible</small>
+    </div>
     }
+
+    <mat-divider></mat-divider>
 
     <mat-nav-list>
       @for (item of navigationMenu(); track item.path) {
-        <a mat-list-item [routerLink]="item.path" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
+
+      <a mat-list-item [routerLink]="item.path" routerLinkActive="active-link" class="nav-item">
+        <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+        <span matListItemTitle>{{ item.label }}</span>
+      </a>
       }
-      <mat-divider></mat-divider>
-      <a mat-list-item (click)="onLogout()">
+
+      <mat-divider class="my-2"></mat-divider>
+
+      <a mat-list-item (click)="onLogout()" class="nav-item logout-item">
         <mat-icon matListItemIcon>logout</mat-icon>
         <span matListItemTitle>Logout</span>
       </a>
@@ -30,15 +47,19 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <mat-toolbar color="primary">
+    <mat-toolbar color="primary" class="content-toolbar">
       @if (isHandset$ | async) {
-        <button mat-icon-button (click)="drawer.toggle()"><mat-icon>menu</mat-icon></button>
+      <button mat-icon-button (click)="drawer.toggle()" aria-label="Toggle menu">
+        <mat-icon>menu</mat-icon>
+      </button>
       }
-      <span>fast-gaz-admin</span>
+      <span class="ms-2">fast-gaz-admin</span>
     </mat-toolbar>
 
-    <main class="p-4">
-      <router-outlet></router-outlet>
+    <main class="content-area p-4">
+      <div class="container-fluid">
+        <router-outlet></router-outlet>
+      </div>
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>

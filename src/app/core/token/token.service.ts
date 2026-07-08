@@ -1,15 +1,24 @@
 import { Injectable } from '@angular/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
 
-@Injectable({
-  providedIn: 'root'
-})
+interface DecodedToken {
+  sub: string;
+  authorities?: string[];
+  exp: number;
+  [key: string]: unknown;
+}
+
+@Injectable({ providedIn: 'root' })
 export class TokenService {
-  private readonly tokenKey: string = 'FAST_GAZ_ADMIN_TOKEN';
+  private readonly tokenKey = 'FAST_GAZ_ADMIN_TOKEN';
   private readonly jwtHelper = new JwtHelperService();
 
-  set token(token: string) {
-    localStorage.setItem(this.tokenKey, token);
+  set token(token: string | null) {
+    if (token) {
+      localStorage.setItem(this.tokenKey, token);
+    } else {
+      localStorage.removeItem(this.tokenKey);
+    }
   }
 
   get token(): string | null {
@@ -24,27 +33,36 @@ export class TokenService {
     const token = this.token;
     if (!token) return false;
 
-    if (this.jwtHelper.isTokenExpired(token)) {
+    try {
+      if (this.jwtHelper.isTokenExpired(token)) {
+        this.clearToken();
+        return false;
+      }
+      return true;
+    } catch {
+      // token malformé
       this.clearToken();
       return false;
     }
-    return true;
+  }
+
+  private decode(): DecodedToken | null {
+    const token = this.token;
+    if (!token) return null;
+    try {
+      return this.jwtHelper.decodeToken(token);
+    } catch {
+      return null;
+    }
   }
 
   get userRoles(): string[] {
-    const token = this.token;
-    if (token && !this.jwtHelper.isTokenExpired(token)) {
-      const decodedToken = this.jwtHelper.decodeToken(token);
-      return decodedToken.authorities || [];
-    }
-    return [];
+    if (!this.isTokenValid()) return [];
+    return this.decode()?.authorities ?? [];
   }
 
   get userEmail(): string | null {
-    const token = this.token;
-    if (token) {
-      return this.jwtHelper.decodeToken(token).sub;
-    }
-    return null;
+    if (!this.isTokenValid()) return null;
+    return this.decode()?.sub ?? null;
   }
 }
