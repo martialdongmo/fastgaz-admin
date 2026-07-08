@@ -1,30 +1,61 @@
-import { Component, signal, inject } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+import { AuthService } from '../../services/auth.service';
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
 export class Login {
-
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  // Define the form group
-  loginForm: FormGroup = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]]
-  });
-
+  // --- state signals ---
   loading = signal(false);
   errorMessage = signal<string | null>(null);
+  hidePassword = signal(true);
 
-  onLogin(): void {
+  loginForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+  });
+
+  togglePasswordVisibility(): void {
+    this.hidePassword.update((v) => !v);
+  }
+
+  get email() {
+    return this.loginForm.controls.email;
+  }
+
+  get password() {
+    return this.loginForm.controls.password;
+  }
+
+  onSubmit(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -33,13 +64,17 @@ export class Login {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    this.authService.authenticate(this.loginForm.value).subscribe({
-      next: () => this.router.navigate(['/admin/dashboard']),
+    this.authService.authenticate(this.loginForm.getRawValue()).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.router.navigate(['/admin']);
+      },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(err.error?.message || 'Login failed');
-      }
+        this.errorMessage.set(
+          err?.error?.message ?? 'Email ou mot de passe incorrect.'
+        );
+      },
     });
   }
-
 }
