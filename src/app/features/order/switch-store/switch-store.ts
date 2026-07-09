@@ -263,9 +263,10 @@ export class SwitchStore implements OnInit {
           this.productsHasMore.set(!res.last);
           this.productsLoading.set(false);
         },
-        error: () => {
+        error: (error) => {
           this.productsError.set('Could not load products for this store.');
           this.productsLoading.set(false);
+          console.error('Error fetching products:', error);
         },
       });
   }

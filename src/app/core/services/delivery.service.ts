@@ -23,7 +23,7 @@ export class DeliveryService {
       .set('page', page.toString())
       .set('size', size.toString());
 
-    return this.http.get<PageResponse<DeliveryResponse>>(`${this.baseUrl}/${storeId}`, { params }).pipe(
+    return this.http.get<PageResponse<DeliveryResponse>>(`${this.baseUrl}/store/${storeId}`, { params }).pipe(
       tap(response => console.log('Deliveries response:', response))
     );
   }
